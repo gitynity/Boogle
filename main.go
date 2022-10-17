@@ -113,6 +113,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 func checklogin(w http.ResponseWriter, r *http.Request) {
 	//get the username and password
+// using cookies and not take password in query.
 	username := r.URL.Query().Get("username")
 	password := r.URL.Query().Get("password")
 	c := db.ConnectUser()
