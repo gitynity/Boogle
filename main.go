@@ -9,6 +9,13 @@ import (
 	"github.com/gitynity/Boogle/login"
 )
 
+type booksearch struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Image       string `json:"image"`
+	Link        string `json:"link"`
+}
+
 type books struct {
 	Items []struct {
 		VolumeInfo struct {
@@ -44,12 +51,6 @@ type books struct {
 	TotalItems int    `json:"totalItems"`
 }
 
-var bodyBg = `<style>body {
-	background-image: url("https://previews.123rf.com/images/moongdo/moongdo1809/moongdo180901759/108645686-color-pencil-with-leaves-on-yellow-background-business-concept-copyspace.jpg");
-	background-repeat: no-repeat;
-	background-size: cover;
-}</style>`
-
 func searchBooks(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("search")
 	//trim the spaces at the beginning and end of the string
@@ -73,47 +74,22 @@ func searchBooks(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Write([]byte("Error"))
 	}
-	w.Write([]byte(bodyBg))
-	w.Write([]byte("<h1>Your searched books are:</h1>"))
-	//create section for each book
-	for _, book := range b.Items {
-		w.Write([]byte("<section>"))
-		w.Write([]byte("<h2>" + book.VolumeInfo.Title + "</h2>"))
-		w.Write([]byte("<h3>By: " + book.VolumeInfo.Authors[0] + "</h3>"))
-		w.Write([]byte("<p>" + book.VolumeInfo.Description + "</p>"))
-		w.Write([]byte("<img src='" + book.VolumeInfo.ImageLinks.Thumbnail + "'/>"))
-		//new line
-		w.Write([]byte("<br>"))
-		w.Write([]byte("<a href='" + book.VolumeInfo.InfoLink + "'>More Info</a>"))
-		w.Write([]byte("</section>"))
+	//get the first 10 books and send them to the client in json format of struct booksearch
+	var book []booksearch
+	for i := 0; i < 10; i++ {
+		book = append(book, booksearch{b.Items[i].VolumeInfo.Title, b.Items[i].VolumeInfo.Description, b.Items[i].VolumeInfo.ImageLinks.Thumbnail, b.Items[i].VolumeInfo.InfoLink})
 	}
+	json.NewEncoder(w).Encode(book)
 }
 
 func home(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(bodyBg))
-	//login form
-	w.Write([]byte("<h1>Login</h1>"))
-	//input form username and password
-	w.Write([]byte("<form action='/checklogin'>"))
-	w.Write([]byte("<input type='text' name='username' placeholder='Username'/>"))
-	w.Write([]byte("<br>"))
-	w.Write([]byte("<input type='password' name='password' placeholder='Password'/>"))
-	w.Write([]byte("<br>"))
-	w.Write([]byte("<input type='submit' value='Login'/>"))
-	w.Write([]byte("</form>"))
-	//center the form
-	w.Write([]byte("<center>"))
-	w.Write([]byte("<h1 style='font-family: 'Google Sans', sans-serif;'>Boogle</h1>"))
-	w.Write([]byte("<form action='/books'>"))
-	w.Write([]byte("<input type='text' name='search' placeholder='Search for books'/>"))
-	w.Write([]byte("<input type='submit' value='Search'/>"))
-	w.Write([]byte("</form>"))
-	w.Write([]byte("</center>"))
+	// link to index.html
+	http.ServeFile(w, r, "index.html")
 }
 
 func checklogin(w http.ResponseWriter, r *http.Request) {
 	//get the username and password
-// using cookies and not take password in query.
+	// using cookies and not take password in query.
 	username := r.URL.Query().Get("username")
 	password := r.URL.Query().Get("password")
 	c := db.ConnectUser()
