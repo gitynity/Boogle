@@ -89,7 +89,7 @@ func searchBooks(w http.ResponseWriter, r *http.Request) {
 	}
 	// create section for each book
 	for _, book := range b.Items {
-		_, err := w.Write([]byte("<section>" + "<h2>" + book.VolumeInfo.Title + "</h2>" + "<h3>By: " + book.VolumeInfo.Authors[0] + "</h3>" + "<p>" + book.VolumeInfo.Description + "</p>" + "<img src='" + book.VolumeInfo.ImageLinks.Thumbnail + "'/>" + "<br>" + "<a href='" + book.VolumeInfo.InfoLink + "'>More Info</a>" + "</section>"))
+		_, err := w.Write([]byte("<section>" + "<h2>" + book.VolumeInfo.Title + "</h2>" + "</h3>" + "<p>" + book.VolumeInfo.Description + "</p>" + "<img src='" + book.VolumeInfo.ImageLinks.Thumbnail + "'/>" + "<br>" + "<a href='" + book.VolumeInfo.InfoLink + "'>More Info</a>" + "</section>"))
 		if err != nil {
 			return
 		}
