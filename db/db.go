@@ -1,8 +1,6 @@
 package db
 
-import (
-	"gopkg.in/mgo.v2"
-)
+import "gopkg.in/mgo.v2"
 
 func ConnectUser() *mgo.Collection {
 	session, err := mgo.Dial("mongodb://localhost")
@@ -22,7 +20,7 @@ func ConnectBook() *mgo.Collection {
 	return c
 }
 
-// disconnect from the database
+// Disconnect from the database
 func Disconnect(c *mgo.Collection) {
 	c.Database.Session.Close()
 }

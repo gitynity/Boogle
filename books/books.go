@@ -3,7 +3,7 @@ package books
 import (
 	"github.com/gitynity/Boogle/db"
 	"gopkg.in/mgo.v2"
-	bson "gopkg.in/mgo.v2/bson"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type Book struct {

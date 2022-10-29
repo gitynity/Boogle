@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 
@@ -52,78 +53,69 @@ var bodyBg = `<style>body {
 
 func searchBooks(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("search")
-	//trim the spaces at the beginning and end of the string
 	query = strings.TrimSpace(query)
-	//replace spaces with +
 	query = strings.Replace(query, " ", "+", -1)
 	if query == "" {
 		http.Error(w, "Please enter a search query", http.StatusBadRequest)
 		return
 	}
-	//get the books
+	// get the books
 	url := "https://www.googleapis.com/books/v1/volumes?q=" + query
 	resp, err := http.Get(url)
 	if err != nil {
-		w.Write([]byte("Error"))
+		_, err := w.Write([]byte("Error"))
+		if err != nil {
+			return
+		}
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(resp.Body)
 
 	b := books{}
 	err = json.NewDecoder(resp.Body).Decode(&b)
 	if err != nil {
-		w.Write([]byte("Error"))
+		_, err := w.Write([]byte("Error"))
+		if err != nil {
+			return
+		}
 	}
-	w.Write([]byte(bodyBg))
-	w.Write([]byte("<h1>Your searched books are:</h1>"))
-	//create section for each book
+	_, err = w.Write([]byte(bodyBg + "<h1>Your searched books are:</h1>"))
+	if err != nil {
+		return
+	}
+	// create section for each book
 	for _, book := range b.Items {
-		w.Write([]byte("<section>"))
-		w.Write([]byte("<h2>" + book.VolumeInfo.Title + "</h2>"))
-		w.Write([]byte("<h3>By: " + book.VolumeInfo.Authors[0] + "</h3>"))
-		w.Write([]byte("<p>" + book.VolumeInfo.Description + "</p>"))
-		w.Write([]byte("<img src='" + book.VolumeInfo.ImageLinks.Thumbnail + "'/>"))
-		//new line
-		w.Write([]byte("<br>"))
-		w.Write([]byte("<a href='" + book.VolumeInfo.InfoLink + "'>More Info</a>"))
-		w.Write([]byte("</section>"))
+		_, err := w.Write([]byte("<section>" + "<h2>" + book.VolumeInfo.Title + "</h2>" + "<h3>By: " + book.VolumeInfo.Authors[0] + "</h3>" + "<p>" + book.VolumeInfo.Description + "</p>" + "<img src='" + book.VolumeInfo.ImageLinks.Thumbnail + "'/>" + "<br>" + "<a href='" + book.VolumeInfo.InfoLink + "'>More Info</a>" + "</section>"))
+		if err != nil {
+			return
+		}
 	}
 }
 
-func home(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(bodyBg))
-	//login form
-	w.Write([]byte("<h1>Login</h1>"))
-	//input form username and password
-	w.Write([]byte("<form action='/checklogin'>"))
-	w.Write([]byte("<input type='text' name='username' placeholder='Username'/>"))
-	w.Write([]byte("<br>"))
-	w.Write([]byte("<input type='password' name='password' placeholder='Password'/>"))
-	w.Write([]byte("<br>"))
-	w.Write([]byte("<input type='submit' value='Login'/>"))
-	w.Write([]byte("</form>"))
-	//center the form
-	w.Write([]byte("<center>"))
-	w.Write([]byte("<h1 style='font-family: 'Google Sans', sans-serif;'>Boogle</h1>"))
-	w.Write([]byte("<form action='/books'>"))
-	w.Write([]byte("<input type='text' name='search' placeholder='Search for books'/>"))
-	w.Write([]byte("<input type='submit' value='Search'/>"))
-	w.Write([]byte("</form>"))
-	w.Write([]byte("</center>"))
+func home(w http.ResponseWriter, _ *http.Request) {
+	_, err := w.Write([]byte(bodyBg + "<h1>Login</h1>" + "<form action='/checklogin'>" + "<input type='text' name='username' placeholder='Username'/>" + "<br>" + "<input type='password' name='password' placeholder='Password'/>" + "<br>" + "<input type='submit' value='Login'/>" + "</form>" + "<center>" + "<h1 style='font-family: 'Google Sans', sans-serif;'>Boogle</h1>" + "<form action='/books'>" + "<input type='text' name='search' placeholder='Search for books'/>" + "<input type='submit' value='Search'/>" + "</form>" + "</center>"))
+	if err != nil {
+		return
+	}
 }
 
 func checklogin(w http.ResponseWriter, r *http.Request) {
-	//get the username and password
-// using cookies and not take password in query.
+	// get the username and password
+	// using cookies and not take password in query.
 	username := r.URL.Query().Get("username")
 	password := r.URL.Query().Get("password")
 	c := db.ConnectUser()
 	defer db.Disconnect(c)
-	//check if the username and password are correct
+	// check if the username and password are correct
 	if login.Login(username, password, c) {
-		//if correct, redirect to the home page
+		// if correct, redirect to the home page
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	} else {
-		//if not correct, redirect to the login page
+		// if not correct, redirect to the login page
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 }
@@ -132,5 +124,8 @@ func main() {
 	http.HandleFunc("/", home)
 	http.HandleFunc("/books", searchBooks)
 	http.HandleFunc("/login", checklogin)
-	http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		return
+	}
 }
